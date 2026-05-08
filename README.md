@@ -57,35 +57,23 @@ python wusound_mcp_multiuser.py 8000 0.0.0.0
 ### 3. 配置客户端
 
 在支持MCP的客户端（如Claude Desktop、Cursor）中添加以下配置：
-
-```json
-{
+ 
+```{
   "mcpServers": {
     "wusound": {
-      "command": "python",
-      "args": [
-        "/绝对路径/wusound_mcp_multiuser.py",
-        "8000",
-        "服务器IP"
-      ]
+      "url": "http://127.0.0.1:8000/sse",
+      "env": {
+        "X_API_KEY": " xxxx"
+      }
     }
   }
 }
-```
 
 ## 🔑 API Key 使用说明
 
 ### 多用户版特点
-每个工具的第一个参数都是 `api_key`，使用者调用时需要传入自己的悟声API Key。
-
-```python
-# 使用者调用时
-generate_speech(
-    api_key="sk-使用者自己的Key",
-    voice_id="角色ID",
-    text="要生成的文本"
-)
-```
+每个工具的第一个参数都是 `X_API_KEY`，使用者调用时需要传入自己的悟声API Key。
+ 
 
 ### 获取API Key
 1. 访问 [悟声官网](https://www.wusound.cn/apiKey)

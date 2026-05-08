@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "wusound": {
+      "command": "python",
+      "args": [
+        "wusound_mcp.py"
+      ],
+      "env": {
+        "WUSOUND_API_KEY": "sk-51077ea527738cb60fc840893ad29b4a"
+      }
+    }
+  }
+}

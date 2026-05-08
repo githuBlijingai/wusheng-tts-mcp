@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wusound": {
+      "transport": "sse",
+      "url": "http://你的服务器IP:8000/sse",
+      "headers": {
+        "X-API-Key": "使用者的悟声API Key"
+      }
+    }
+  }
+}

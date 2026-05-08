@@ -1,0 +1,214 @@
+# 悟声MCP服务器 - 使用者配置指南
+
+## 🔑 核心概念澄清
+
+**你的服务器** (`wusound_mcp.py`) 是一个 **SSE模式的MCP服务器**：
+- 它需要API Key来调用悟声API
+- 运行在 `http://localhost:8000/sse`（或你指定的地址）
+
+**使用者的MCP客户端**（如Claude Desktop）需要：
+- 一个能够连接到你的SSE服务器的"桥梁"
+- 使用者自己的API Key
+
+## 🚀 服务器端（你）
+
+### 1. 启动服务器（无需API Key）
+
+```bash
+cd 悟声mcp
+pip install -r requirements.txt
+
+# 启动服务器
+python wusound_mcp.py
+```
+
+服务器会显示：
+```
+============================================================
+悟声MCP服务器启动中...
+============================================================
+服务器地址: http://0.0.0.0:8000
+SSE端点: http://0.0.0.0:8000/sse
+MCP调试: http://0.0.0.0:8000/debug/sse
+============================================================
+```
+
+### 2. 或者指定IP和端口
+
+```bash
+python wusound_mcp.py 8080 192.168.1.100
+```
+
+### 3. 分享给使用者
+
+告诉他们你的服务器地址，例如：
+- `http://你的IP:8000/sse`
+
+## 💻 使用者配置（客户端）
+
+使用者的MCP客户端需要通过 **stdio模式** 启动一个连接到你的SSE服务器的进程。
+
+### 创建连接脚本
+
+在用户机器上创建 `connect_wusound.py`：
+
+```python
+import os
+import sys
+from mcp.client import MCPClient
+
+async def main():
+    server_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000/sse"
+    
+    client = MCPClient(server_url)
+    
+    async with client:
+        # 连接保持，客户端可以直接使用MCP工具
+        # 使用者自己的API Key会通过环境变量传递
+        await client.listen()
+
+if __name__ == '__main__':
+    import asyncio
+    asyncio.run(main())
+```
+
+### Claude Desktop 配置示例
+
+```json
+{
+  "mcpServers": {
+    "wusound": {
+      "command": "python",
+      "args": [
+        "/path/to/connect_wusound.py",
+        "http://服务器IP:8000/sse"
+      ],
+      "env": {
+        "WUSOUND_API_KEY": "使用者自己的API Key"
+      }
+    }
+  }
+}
+```
+
+### Cursor 配置示例
+
+在 Cursor 设置 → MCP Servers 中添加：
+
+```json
+{
+  "command": "python",
+  "args": [
+    "/path/to/connect_wusound.py",
+    "http://服务器IP:8000/sse"
+  ],
+  "env": {
+    "WUSOUND_API_KEY": "使用者自己的API Key"
+  }
+}
+```
+
+## 🎯 简化方案：直接使用FastMCP CLI
+
+FastMCP提供了更简单的连接方式。修改 `.env` 模板给用户：
+
+```env
+# 使用者需要填入自己的API Key
+WUSOUND_API_KEY=使用者自己的API Key
+
+# 使用者需要填入你的服务器地址
+WUSOUND_SERVER_URL=http://你的IP:8000/sse
+```
+
+## 📋 完整流程图
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    你的机器（服务器）                      │
+│                                                         │
+│   ┌─────────────────────┐                               │
+│   │  wusound_mcp.py    │  ← 监听在 http://IP:8000/sse  │
+│   │  (SSE服务器)        │                               │
+│   └─────────────────────┘                               │
+│           ↑                                            │
+│           │  连接转发                                  │
+└───────────│─────────────────────────────────────────────┘
+            │
+            │ HTTP SSE
+            │
+┌───────────│─────────────────────────────────────────────┐
+│           ↓         使用者机器（客户端）                  │
+│   ┌─────────────────────┐                               │
+│   │  Claude Desktop     │  ← 填入自己的API Key           │
+│   │  MCP Client        │  ← 连接 http://你的IP:8000/sse  │
+│   └─────────────────────┘                               │
+│                                                         │
+│   用户自己的API Key → 转发 → 悟声API                      │
+└─────────────────────────────────────────────────────────┘
+```
+
+## ⚠️ 重要说明
+
+FastMCP的SSE模式实际上是这样工作的：
+
+1. **服务器端**：运行 `wusound_mcp.py`，它启动一个HTTP服务器
+2. **客户端**：MCP客户端（如Claude Desktop）需要能够连接到服务器的SSE端点
+
+**但是**，大多数MCP客户端（如Claude Desktop）原生只支持 **stdio模式**，不支持直接连接远程SSE服务器。
+
+**解决方案**：使用 MCP 官方提供的 `mcp` CLI 工具来桥接！
+
+## 🛠️ 使用 mcp CLI 桥接（推荐）
+
+### 1. 服务器端不变，启动SSE服务器
+
+```bash
+python wusound_mcp.py
+```
+
+### 2. 使用者安装 mcp CLI
+
+```bash
+pip install mcp
+```
+
+### 3. 使用者配置 Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "wusound": {
+      "command": "mcp",
+      "args": [
+        "client",
+        "--server-url",
+        "http://你的IP:8000/sse"
+      ],
+      "env": {
+        "WUSOUND_API_KEY": "使用者自己的API Key"
+      }
+    }
+  }
+}
+```
+
+## 📦 快速开始包
+
+让我为你创建一个完整的"分发给使用者"的包：
+<minimax:tool_call>
+<invoke name="Write">
+<parameter name="content">{
+  "mcpServers": {
+    "wusound": {
+      "command": "mcp",
+      "args": [
+        "client",
+        "--server-url",
+        "http://服务器IP:8000/sse"
+      ],
+      "env": {
+        "WUSOUND_API_KEY": "这里填入你自己的悟声API Key"
+      }
+    }
+  }
+}
